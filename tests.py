@@ -1,2 +1,2 @@
 import gym
-import gym_wind_turbine
+import gym_tidal_turbine

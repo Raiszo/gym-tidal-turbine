@@ -3,7 +3,7 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
-class WindTurbine(gym.Env):
+class TidalTurbine(gym.Env):
     T = 0.05
 
     

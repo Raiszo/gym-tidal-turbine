@@ -1,2 +1,2 @@
-# gym-wind-turbine
+# gym-tidal-turbine
 GYM environment for RL testing
