@@ -8,30 +8,23 @@ class TidalTurbine(gym.Env):
 
     
     def __init__(self):
-        """
-        The data is from a 5MW wind turbine for offshore systema development
-        """
-        self.rho = 0.0
+        # Air/Water density
+        self.rho = 1014.0
+        # Blade pitch angle
         self.beta = 0.0
-        self.alpha_0 = None
 
-        self.area_blade = 12445.3
-        self.radius = 63
-        self.friction = 0.0
-        self.J = 0.00
-        self.k_constants = [
-            None,
-            0.73,
-            151.0,
-            0.58,
-            2e-3,
-            2.14,
-            13.2,
-            18.4
-        ]
+        self.area_blade = 12.0
+        self.radius = 1.2 # Rotod diameter
+        
+        # Combined inertia of turbine + rotor
+        self.J = 1 # [kg-m2]
+        # Viscous friction of the rotor
+        self.B = 0 # []
 
+        # Wind velocity
         self.vel_w = None
         self.w_t = None
+        # Mechanical angular speed of the turbine
         self.w_m = 0.0
 
         self.minU = - np.finfo(np.float32).max
@@ -62,13 +55,13 @@ class TidalTurbine(gym.Env):
 
         self.seed()
         self.viewer = None
-        self.state = None
 
     @property
     def Cp(self):
         k = self.k_constants
         beta = self.beta
 
+        # Tip Speed Ration, TSR
         lamb = self.radius * self.w_m
         lamb_i = 1/(lamb + 8e-2*beta) - 35e-3/(1 + beta**3)
         lamb_i = 1 / lamb_i
