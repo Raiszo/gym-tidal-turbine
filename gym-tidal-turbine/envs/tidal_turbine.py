@@ -5,7 +5,6 @@ from gym.utils import seeding
 
 class TidalTurbine(gym.Env):
     T = 0.05
-
     
     def __init__(self):
         # Air/Water density
@@ -21,8 +20,8 @@ class TidalTurbine(gym.Env):
         # Viscous friction of the rotor
         self.B = 0 # []
 
-        # Wind velocity
-        self.vel_w = None
+        # Velocity of the wind/water
+        self.v_w = None
         self.w_t = None
         # Mechanical angular speed of the turbine
         self.w_m = 0.0
@@ -57,18 +56,19 @@ class TidalTurbine(gym.Env):
         self.viewer = None
 
     @property
+    def tsr(self):
+        """
+        Also known as Lambda
+        """
+        return self.radius * self.w_m / self.v_w
+
+    @property
+    def w_m(self):
+        return self.__state[0]
+
+    @property
     def Cp(self):
-        k = self.k_constants
-        beta = self.beta
-
-        # Tip Speed Ration, TSR
-        lamb = self.radius * self.w_m
-        lamb_i = 1/(lamb + 8e-2*beta) - 35e-3/(1 + beta**3)
-        lamb_i = 1 / lamb_i
-
-        cp = k[1] * (k[2]/lamb_i  - k[3]*beta - k[4]*beta^k[5]- k[6]) * np.exp(-k[7]/lamb_i)
-
-        return cp
+        return 0.095 + 0.0975 * self.tsr - 0.0075 * self.tsr ** 2
 
     @property
     def P_m(self):
@@ -79,24 +79,25 @@ class TidalTurbine(gym.Env):
         return self.P_m / self.w_m
 
     @property
-    def w_m(self):
-        return self.__state[0]
-
-    def _get_obs(self):
+    def obs(self):
         pass
 
     def step(self, action):
-        pass
+        self._apply_action(action)
+
+        return self.obs, 0, False, {}
 
     def _apply_action(self, u):
+        w_m, w_m_dot = self.__state
+        
         sdot = np.array([
             w_m_dot,
             (u - self.T_m - self.friction*self.w_m) / self.J
         ])
 
-        self.state = sdot * self.dt + self.state
+        self.__state = sdot * self.dt + self.state
 
-        return 0
+        return u
 
     def reset(self):
         self.__state = np.zeros(2)
