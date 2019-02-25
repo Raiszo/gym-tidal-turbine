@@ -13,7 +13,7 @@ class TidalTurbine(gym.Env):
         self.beta = 0.0
 
         self.area_blade = 12.0
-        self.radius = 1.2 # Rotod diameter
+        self.radius = 0.6 # Rotor radius
         
         # Combined inertia of turbine + rotor
         self.J = 1 # [kg-m2]
@@ -21,16 +21,14 @@ class TidalTurbine(gym.Env):
         self.B = 0 # []
 
         # Velocity of the wind/water
-        self.v_w = None
+        # self.vel_w = None
         self.w_t = None
-        # Mechanical angular speed of the turbine
-        self.w_m = 0.0
 
-        self.minU = - np.finfo(np.float32).max
-        self.maxU = np.finfo(np.float32).max
+        self.minU = 0
+        self.maxU = 100
         
 
-        self.dt = WintTurbine.T
+        self.dt = TidalTurbine.T
 
         high = np.array([
             np.finfo(np.float32).max, # w_m
@@ -38,8 +36,8 @@ class TidalTurbine(gym.Env):
         ])
         
         self.action_space = spaces.Box(
-            low = np.array([ self.minU, self.minU ]),
-            high = np.array([ self.maxU, self.maxU ]),
+            low = np.array([ self.minU ]),
+            high = np.array([ self.maxU ]),
             dtype = np.float32
         )
         self.observation_space = spaces.Box(
@@ -80,7 +78,7 @@ class TidalTurbine(gym.Env):
 
     @property
     def obs(self):
-        pass
+        return self.__state
 
     def step(self, action):
         self._apply_action(action)
@@ -92,18 +90,21 @@ class TidalTurbine(gym.Env):
         
         sdot = np.array([
             w_m_dot,
-            (u - self.T_m - self.friction*self.w_m) / self.J
+            (u - self.T_m - self.B*self.w_m) / self.J
         ])
+        print(self.__state)
 
-        self.__state = sdot * self.dt + self.state
+        self.__state = sdot * self.dt + self.__state
 
         return u
 
     def reset(self):
-        self.__state = np.zeros(2)
-        self.w_m = 0
-        self.vel_w = 0
-    
+        self.v_w = 0.81
+
+        initial_tsr = 4.5
+        w_m_0 = 4.5 * self.v_w / self.radius
+        self.__state = np.array([ w_m_0, 0 ])
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
