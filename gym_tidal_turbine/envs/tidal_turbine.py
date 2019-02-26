@@ -90,7 +90,7 @@ class TidalTurbine(gym.Env):
         
         sdot = np.array([
             w_m_dot,
-            (u - self.T_m - self.B*self.w_m) / self.J
+            (u[0] - self.T_m - self.B*self.w_m) / self.J
         ])
         print(self.__state)
 
