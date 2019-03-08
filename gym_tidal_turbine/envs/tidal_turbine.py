@@ -41,8 +41,8 @@ class TidalTurbine(gym.Env):
             dtype = np.float32
         )
         self.observation_space = spaces.Box(
-            -high,
-            high,
+            low = -high,
+            high = high,
             dtype=np.float32
         )
 
@@ -81,9 +81,14 @@ class TidalTurbine(gym.Env):
         return self.__state
 
     def step(self, action):
+        control_r = -0.01 * action.dot(action)
+        pot_r = 1e-2 * self.P_m
+        print(self.P_m)
+
+        reward = np.array([ control_r, pot_r ])
         self._apply_action(action)
 
-        return self.obs, 0, False, {}
+        return self.obs, reward, False, {}
 
     def _apply_action(self, u):
         w_m, w_m_dot = self.__state
@@ -92,7 +97,7 @@ class TidalTurbine(gym.Env):
             w_m_dot,
             (u[0] - self.T_m - self.B*self.w_m) / self.J
         ])
-        print(self.__state)
+        # print(self.__state)
 
         self.__state = sdot * self.dt + self.__state
 
