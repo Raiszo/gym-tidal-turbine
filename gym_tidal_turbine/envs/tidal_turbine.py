@@ -12,8 +12,8 @@ class TidalTurbine(gym.Env):
         # Blade pitch angle
         self.beta = 0.0
 
-        self.area_blade = 12.0
         self.radius = 0.6 # Rotor radius
+        self.area_blade = np.pi * self.radius ** 2
         
         # Combined inertia of turbine + rotor
         self.J = 1 # [kg-m2]
@@ -28,7 +28,7 @@ class TidalTurbine(gym.Env):
         self.maxU = 100
         
 
-        self.dt = TidalTurbine.T
+        self.dt = 0.05
 
         high = np.array([
             np.finfo(np.float32).max, # w_m
@@ -46,7 +46,7 @@ class TidalTurbine(gym.Env):
             dtype=np.float32
         )
 
-        self.__state = None
+        self.__state__ = None
 
         self.reset()
 
@@ -62,28 +62,24 @@ class TidalTurbine(gym.Env):
 
     @property
     def w_m(self):
-        return self.__state[0]
+        return self.__state__[0]
 
     @property
     def Cp(self):
         return 0.095 + 0.0975 * self.tsr - 0.0075 * self.tsr ** 2
 
     @property
-    def P_m(self):
+    def Pm(self):
         return 0.5 * self.Cp * self.rho * self.area_blade * self.v_w**3
 
     @property
-    def T_m(self):
-        return self.P_m / self.w_m
-
-    @property
-    def obs(self):
-        return self.__state
+    def Tm(self):
+        return self.Pm / (self.w_m + 1e-3 )
 
     def step(self, action):
         control_r = -0.01 * action.dot(action)
-        pot_r = 1e-2 * self.P_m
-        print(self.P_m)
+        pot_r = 1e-2 * self.Pm
+        # print(self.Pm)
 
         reward = np.array([ control_r, pot_r ])
         self._apply_action(action)
@@ -91,24 +87,32 @@ class TidalTurbine(gym.Env):
         return self.obs, reward, False, {}
 
     def _apply_action(self, u):
-        w_m, w_m_dot = self.__state
+        w_m, w_m_dot = self.__state__
         
         sdot = np.array([
             w_m_dot,
-            (u[0] - self.T_m - self.B*self.w_m) / self.J
+            (u[0] - self.Tm - self.B*self.w_m) / self.J
         ])
         # print(self.__state)
 
-        self.__state = sdot * self.dt + self.__state
+        state = sdot * self.dt + self.__state__
+
+        print(self.tsr)
+        # clamp it to only positive w_m
+        self.__state__ = state if state[0] > 0 else np.zeros(2)
 
         return u
 
     def reset(self):
-        self.v_w = 0.81
-
+        self.v_w = 0.81 # Mean current velocity
         initial_tsr = 4.5
-        w_m_0 = 4.5 * self.v_w / self.radius
-        self.__state = np.array([ w_m_0, 0 ])
+        
+        w_m_0 = initial_tsr * self.v_w / self.radius
+        self.__state__ = np.array([ w_m_0, 0 ])
+
+    @property
+    def obs(self):
+        return self.__state__
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
