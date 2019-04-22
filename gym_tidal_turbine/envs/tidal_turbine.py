@@ -40,11 +40,11 @@ class TidalTurbine(gym.Env):
             high = np.array([ self.maxU ]),
             dtype = np.float32
         )
-        self.observation_space = spaces.Box(
-            low = -high,
-            high = high,
-            dtype=np.float32
-        )
+        # self.observation_space = spaces.Box(
+        #     low = -high,
+        #     high = high,
+        #     dtype=np.float32
+        # )
 
         self.__state__ = None
 
@@ -77,42 +77,38 @@ class TidalTurbine(gym.Env):
         return self.Pm / (self.w_m + 1e-3 )
 
     def step(self, action):
-        control_r = -0.01 * action.dot(action)
-        pot_r = 1e-2 * self.Pm
-        # print(self.Pm)
+        # w_m, w_m_dot = self.__state__
 
-        reward = np.array([ control_r, pot_r ])
-        self._apply_action(action)
+        # sdot = np.array([
+        #     w_m_dot,
+        #     (self.Tm - action[0] - self.B*self.w_m) / self.J
+        # ])
+        # print(sdot)
 
-        return self.obs, reward, False, {}
+        self.__state__ = (self.Tm - action - self.B*self.w_m) / self.J * self.dt + self.__state__
 
-    def _apply_action(self, u):
-        w_m, w_m_dot = self.__state__
-        
-        sdot = np.array([
-            w_m_dot,
-            (u[0] - self.Tm - self.B*self.w_m) / self.J
-        ])
-        # print(self.__state)
-
-        state = sdot * self.dt + self.__state__
-
-        print(self.tsr)
         # clamp it to only positive w_m
-        self.__state__ = state if state[0] > 0 else np.zeros(2)
+        done = self.__state__[0] <= 0.1
 
-        return u
+        return self.obs, 0, done, {}
 
     def reset(self):
         self.v_w = 0.81 # Mean current velocity
         initial_tsr = 4.5
         
         w_m_0 = initial_tsr * self.v_w / self.radius
-        self.__state__ = np.array([ w_m_0, 0 ])
+        # self.__state__ = np.array([ w_m_0, 0 ])
+        self.__state__ = np.array([ w_m_0 ])
+
+        return self.obs
 
     @property
     def obs(self):
-        return self.__state__
+        return np.concatenate((
+            self.__state__,
+            np.array([ self.Tm, self.tsr ])
+        ))
+    
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

@@ -4,12 +4,18 @@ import gym_tidal_turbine
 import numpy as np
 
 env = gym.make('TidalTurbine-v0')
-env.reset()
+obs = env.reset()
 
-for _ in range(20):
-    # a = env.action_space.sample()
+k = 0.5 * 1014.0 * np.pi * 0.6 ** 5 * (0.41 / 6 ** 3)
+
+for _ in range(100):
+    # Controller here
+    Tm_opt = k * obs[0] ** 2
+    # print(Tm_opt)
+    a = np.array([Tm_opt])
     
-    obs, r, done, _ = env.step(np.array([ 0 ]))
-    print(obs)
+    obs, r, done, _ = env.step(a)
+    print(obs, Tm_opt)
     if done:
+        print('turbine stopped')
         break
