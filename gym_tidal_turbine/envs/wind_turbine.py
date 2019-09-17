@@ -194,8 +194,8 @@ class WindTurbine(gym.Env):
         mu = 1.81206e-5
 
         afinit = CCAirfoil.initFromAerodynFile  # just for shorthand
-        basepath = resource_filename('ccblade',
-                                     path.join('data', '5MW_AFFiles'))
+        basepath = resource_filename('gym_tidal_turbine',
+                              path.join('data', '5MW_AFFiles'))
 
         # load all airfoils
         airfoil_types = [0] * 8
@@ -239,7 +239,7 @@ class WindTurbine(gym.Env):
         alpha = (t_aero - n_gear * t_gen) / (i_rotor + n_gear ** 2 * i_gen)
         return alpha * self.dt * 30/np.pi
 
-    def _step(self, action):
+    def step(self, action):
         # Take action
         if self.action_space.contains(action):
             # Apply rate change
@@ -340,7 +340,7 @@ class WindTurbine(gym.Env):
 
         return observation, reward, done, {}
 
-    def _reset(self):
+    def reset(self):
         self.anamometer.reset()
         # Simulation initial values
         self.t = 0.0  # Time
@@ -365,9 +365,9 @@ class WindTurbine(gym.Env):
         self.accum_energy = 0.0
         self.prev_reward = None
         self.game_over = False
-        return self._step(self.neutral_action)[0]
+        return self.step(self.neutral_action)[0]
 
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
 
         def plot_and_save():
             rout_dir = path.join('gwt_output',

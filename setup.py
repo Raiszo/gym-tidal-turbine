@@ -7,6 +7,6 @@ setup(
         'gym',
         'numpy',
         'CCBlade==1.1.1',
-        # 'matplotlib==2.0.0'
+        'matplotlib==2.0.0'     # keep this version for now
     ]
 )

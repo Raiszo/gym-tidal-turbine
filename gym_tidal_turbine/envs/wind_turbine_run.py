@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import gym
-import gym_wind_turbine
+import gym_tidal_turbine
 
 
 def run_neutral_actions():
