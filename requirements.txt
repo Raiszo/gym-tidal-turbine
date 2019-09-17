@@ -1,0 +1,3 @@
+git+https://github.com/WISDEM/AirfoilPreppy.git
+git+https://github.com/WISDEM/CCBlade.git
+-e .

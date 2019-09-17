@@ -1,1 +1,2 @@
 from gym_tidal_turbine.envs.tidal_turbine import TidalTurbine
+from gym_tidal_turbine.envs.wind_turbine import WindTurbine
