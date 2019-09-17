@@ -249,7 +249,8 @@ class WindTurbine(gym.Env):
         # Simulate
         self.omega = self.next_omega
         Uinf = self.anamometer.read(self.t)
-        P_aero, T, Q = self.rotor.evaluate([Uinf], [self.omega], [self.pitch])
+        # In recent version of CCBlade this funcion returns 4 elements
+        P_aero, T, Q, _ = self.rotor.evaluate([Uinf], [self.omega], [self.pitch])
         P_gen = (self.omega
                  * self.gen_torq
                  * self.nrel_5mw_drivetrain_param['gear_box_ratio']
