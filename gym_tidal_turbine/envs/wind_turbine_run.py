@@ -74,7 +74,7 @@ def run_real_control_actions():
     observation = wt.reset()
     while not done:
         action = wt.env.real_control(observation)
-        observation, reward, done, info = wt.step(action)
+        observation, reward, done, info = wt.step(action[:1])
 
     wt.render()
 

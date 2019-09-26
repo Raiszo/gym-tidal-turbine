@@ -99,11 +99,16 @@ class WindTurbine(gym.Env):
             [-15.0, 15.0],  # gen. torque rate [kNm/s]
             [-8.0, 8.0]     # pitch rate [deg/s]
         ]) * self.dt
+        # self.action_space = spaces.Box(
+        #     low=act_space_min_max_limits[:, 0],
+        #     high=act_space_min_max_limits[:, 1])
         self.action_space = spaces.Box(
-            low=act_space_min_max_limits[:, 0],
-            high=act_space_min_max_limits[:, 1])
+            low=act_space_min_max_limits[0,0],
+            high=act_space_min_max_limits[0,1],
+            shape=(1,),
+        )
 
-        self.neutral_action = np.array([0.0, 0.0])
+        self.neutral_action = np.array([0.0])
 
         # Simulation initial values
         self.t = 0.0  # Time
@@ -244,7 +249,7 @@ class WindTurbine(gym.Env):
         if self.action_space.contains(action):
             # Apply rate change
             self.gen_torq += action[0]
-            self.pitch += action[1]
+            # self.pitch += action[1]
 
         # Simulate
         self.omega = self.next_omega
@@ -338,6 +343,8 @@ class WindTurbine(gym.Env):
         self.t += self.dt
         self.i += 1
 
+        if done:
+            print("game over :''v")
         return observation, reward, done, {}
 
     def reset(self):
@@ -487,12 +494,17 @@ class WindTurbine(gym.Env):
         opt_gen_torq = np.interp(obs_wind, self.rc_wind, self.rc_gen_torq)
         opt_pitch = np.interp(obs_wind, self.rc_wind, self.rc_pitch)
 
-        act_gen_torq_low, act_pitch_low = self.action_space.low
-        act_gen_torq_high, act_pitch_high = self.action_space.high
+        # act_gen_torq_low, act_pitch_low = self.action_space.low
+        # act_gen_torq_high, act_pitch_high = self.action_space.high
+        act_gen_torq_low = self.action_space.low
+        act_gen_torq_low = act_gen_torq_low[0]
+        act_gen_torq_high = self.action_space.high
+        act_gen_torq_high = act_gen_torq_high[0]
         real_control_action = np.array([
             np.clip(opt_gen_torq - obs_gen_torq, act_gen_torq_low,
                     act_gen_torq_high),
-            np.clip(opt_pitch - obs_pitch, act_pitch_low, act_pitch_high)])
+            # np.clip(opt_pitch - obs_pitch, act_pitch_low, act_pitch_high)])
+            ])
         return real_control_action
 
 
