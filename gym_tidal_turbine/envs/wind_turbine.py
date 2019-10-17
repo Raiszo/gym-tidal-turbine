@@ -286,11 +286,12 @@ class WindTurbine(gym.Env):
             ctrl_chg = np.square(action).sum()
 
             rew_power = P_weight * P_chg_rate
-            rew_thrust = T_weight * T_chg_rate
+            # rew_thrust = T_weight * T_chg_rate
             rew_control = ctrl_weight * ctrl_chg
             rew_alive = 0.05
             
-            reward = rew_power - rew_thrust - rew_control + rew_alive
+            # reward = rew_power - rew_thrust - rew_control + rew_alive
+            reward = rew_power - rew_control + rew_alive
             # print("{} = {} - {} - {} + {}".format(
             #     reward, rew_power, rew_thrust, rew_control, rew_alive))
             # print("{} = {}/{}".format(
@@ -343,8 +344,8 @@ class WindTurbine(gym.Env):
         self.t += self.dt
         self.i += 1
 
-        if done:
-            print("game over :''v")
+        # if done:
+        #     print("game over :''v")
         return observation, reward, done, {}
 
     def reset(self):
