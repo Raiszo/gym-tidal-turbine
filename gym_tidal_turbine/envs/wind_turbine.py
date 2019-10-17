@@ -9,6 +9,7 @@ from os import path, makedirs
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from matplotlib.lines import Line2D
 from matplotlib.animation import FuncAnimation
 
@@ -333,6 +334,7 @@ class WindTurbine(gym.Env):
             self.y_T[self.i] = observation[2]
             self.y_omega[self.i] = observation[3]
             self.y_gen_torq[self.i] = observation[4]
+            self.y_aero_torq[self.i] = Q[0] / (self.nrel_5mw_drivetrain_param['gear_box_ratio']*1e3)
             self.y_pitch[self.i] = observation[5]
             self.y_reward[self.i] = reward
 
@@ -366,6 +368,7 @@ class WindTurbine(gym.Env):
             self.y_T = np.full(self.x_t.shape, np.nan)
             self.y_omega = np.full(self.x_t.shape, np.nan)
             self.y_gen_torq = np.full(self.x_t.shape, np.nan)
+            self.y_aero_torq = np.full(self.x_t.shape, np.nan)
             self.y_pitch = np.full(self.x_t.shape, np.nan)
             self.y_reward = np.full(self.x_t.shape, np.nan)
 
@@ -396,10 +399,10 @@ class WindTurbine(gym.Env):
                   ax_P,
                   ax_T,
                   ax_omega,
-                  ax_gen_torq,
-                  ax_pitch,
-                  ax_reward) = plt.subplots(7, figsize=(8, 12), sharex='all',
-                                            tight_layout=True)
+                  ax_torq,
+                  ax_reward) = plt.subplots(6, figsize=(8, 12), sharex='all', tight_layout=True,
+                                            gridspec_kw={'height_ratios': [ 1, 1, 1, 1, 2, 1]})
+            
 
             fig.suptitle('gym-wind-turbine')
 
@@ -431,19 +434,24 @@ class WindTurbine(gym.Env):
             ax_omega.set_ylim(0, 15)
             ax_omega.grid(linestyle='--', linewidth=0.5)
 
-            ax_gen_torq.set_ylabel('Gen. Torque [kNm]')
+            ax_torq.set_ylabel('Torque [kNm]')
             line_gen_torq = Line2D(self.x_t, self.y_gen_torq, color='blue')
-            ax_gen_torq.add_line(line_gen_torq)
-            ax_gen_torq.set_xlim(0, self.t_max)
-            ax_gen_torq.set_ylim(0.606, 47.403)
-            ax_gen_torq.grid(linestyle='--', linewidth=0.5)
+            line_aero_torq = Line2D(self.x_t, self.y_aero_torq, color='red')
+            ax_torq.add_line(line_gen_torq)
+            ax_torq.add_line(line_aero_torq)
+            ax_torq.set_xlim(0, self.t_max)
+            ax_torq.set_ylim(0.606, 47.403)
+            ax_torq.grid(linestyle='--', linewidth=0.5)
+            ax_torq.legend((line_gen_torq, line_aero_torq),
+                           ('Gen. Torq', 'Aero. Torq'),
+                           loc='upper right', shadow=True)
 
-            ax_pitch.set_ylabel('Coll. pitch [deg]')
-            line_pitch = Line2D(self.x_t, self.y_pitch, color='blue')
-            ax_pitch.add_line(line_pitch)
-            ax_pitch.set_xlim(0, self.t_max)
-            ax_pitch.set_ylim(0, 90)
-            ax_pitch.grid(linestyle='--', linewidth=0.5)
+            # ax_pitch.set_ylabel('Coll. pitch [deg]')
+            # line_pitch = Line2D(self.x_t, self.y_pitch, color='blue')
+            # ax_pitch.add_line(line_pitch)
+            # ax_pitch.set_xlim(0, self.t_max)
+            # ax_pitch.set_ylim(0, 90)
+            # ax_pitch.grid(linestyle='--', linewidth=0.5)
 
             ax_reward.set_ylabel('Reward [units]')
             line_reward = Line2D(self.x_t, self.y_reward, color='green')
