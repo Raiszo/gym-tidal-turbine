@@ -87,10 +87,10 @@ class WindTurbine(gym.Env):
         obs_space_min_max_limits = np.array([
             [3, 25],          # wind [m/s]
             [0, 7000],        # power [kW]
-            [0, 1000],        # thrust [kN]
+            # [0, 1000],        # thrust [kN]
             [0, 15],          # rotor speed [rpm]
             [0.606, 47.403],  # generator torque [kNm]
-            [0, 90]           # collective pitch [deg]
+            # [0, 90]           # collective pitch [deg]
         ])
         self.observation_space = spaces.Box(
             low=obs_space_min_max_limits[:, 0],
@@ -140,11 +140,11 @@ class WindTurbine(gym.Env):
             0, env_settings['duration'] + env_settings['timestep'],
             env_settings['timestep'])
         self.y_wind = np.full(self.x_t.shape, np.nan)
-        self.y_P = np.full(self.x_t.shape, np.nan)
+        self.y_P_aero = np.full(self.x_t.shape, np.nan)
         self.y_T = np.full(self.x_t.shape, np.nan)
         self.y_omega = np.full(self.x_t.shape, np.nan)
         self.y_gen_torq = np.full(self.x_t.shape, np.nan)
-        self.y_pitch = np.full(self.x_t.shape, np.nan)
+        # self.y_pitch = np.full(self.x_t.shape, np.nan)
         self.y_reward = np.full(self.x_t.shape, np.nan)
 
         # Real Control variables
@@ -261,8 +261,10 @@ class WindTurbine(gym.Env):
                  * self.gen_torq
                  * self.nrel_5mw_drivetrain_param['gear_box_ratio']
                  * np.pi / 30)
-        observation = np.array([Uinf, P_gen, T[0] / 1e3, self.omega,
-                                self.gen_torq, self.pitch])
+        aero_torq = Q[0] / (self.nrel_5mw_drivetrain_param['gear_box_ratio']*1e3)
+        # observation = np.array([Uinf, P_gen, T[0] / 1e3, self.omega,
+        #                         self.gen_torq, self.pitch])
+        observation = np.array([Uinf, P_aero, self.omega, aero_torq])
 
         # End the episode if actions or observations are out boundaries
         self.game_over = not (self.action_space.contains(action)
@@ -276,14 +278,16 @@ class WindTurbine(gym.Env):
             T_weight = 0.0
             ctrl_weight = 0.1
 
-            (_, P, T, _, _, _) = observation
-            (_, prev_P, prev_T, _, _, _) = self.prev_observation
+            # (_, P, T, _, _, _) = observation
+            # (_, prev_P, prev_T, _, _, _) = self.prev_observation
+            (_, P, _, _) = observation
+            (_, prev_P, _, _) = self.prev_observation
             
             energy = P * (self.dt/3600.0)
             self.accum_energy += energy
 
             P_chg_rate = (P - prev_P)/prev_P
-            T_chg_rate = (T - prev_T)/prev_T
+            # T_chg_rate = (T - prev_T)/prev_T
             ctrl_chg = np.square(action).sum()
 
             rew_power = P_weight * P_chg_rate
@@ -330,12 +334,12 @@ class WindTurbine(gym.Env):
         else:
             self.x_t[self.i] = self.t
             self.y_wind[self.i] = observation[0]
-            self.y_P[self.i] = observation[1]
-            self.y_T[self.i] = observation[2]
-            self.y_omega[self.i] = observation[3]
-            self.y_gen_torq[self.i] = observation[4]
-            self.y_aero_torq[self.i] = Q[0] / (self.nrel_5mw_drivetrain_param['gear_box_ratio']*1e3)
-            self.y_pitch[self.i] = observation[5]
+            self.y_P_aero[self.i] = observation[1]
+            # self.y_T[self.i] = observation[2]
+            self.y_omega[self.i] = observation[2]
+            self.y_gen_torq[self.i] = observation[3]
+            self.y_aero_torq[self.i] = aero_torq
+            # self.y_pitch[self.i] = observation[5]
             self.y_reward[self.i] = reward
 
         # Prepare next iteration
@@ -364,12 +368,12 @@ class WindTurbine(gym.Env):
 
         if not self.render_animation:
             self.y_wind = np.full(self.x_t.shape, np.nan)
-            self.y_P = np.full(self.x_t.shape, np.nan)
-            self.y_T = np.full(self.x_t.shape, np.nan)
+            self.y_P_aero = np.full(self.x_t.shape, np.nan)
+            # self.y_T = np.full(self.x_t.shape, np.nan)
             self.y_omega = np.full(self.x_t.shape, np.nan)
             self.y_gen_torq = np.full(self.x_t.shape, np.nan)
             self.y_aero_torq = np.full(self.x_t.shape, np.nan)
-            self.y_pitch = np.full(self.x_t.shape, np.nan)
+            # self.y_pitch = np.full(self.x_t.shape, np.nan)
             self.y_reward = np.full(self.x_t.shape, np.nan)
 
         # return observation only
@@ -397,11 +401,10 @@ class WindTurbine(gym.Env):
             # Plot
             fig, (ax_wind,
                   ax_P,
-                  ax_T,
                   ax_omega,
                   ax_torq,
-                  ax_reward) = plt.subplots(6, figsize=(8, 12), sharex='all', tight_layout=True,
-                                            gridspec_kw={'height_ratios': [ 1, 1, 1, 1, 2, 1]})
+                  ax_reward) = plt.subplots(5, figsize=(8, 12), sharex='all', tight_layout=True,
+                                            gridspec_kw={'height_ratios': [ 1, 1, 1, 2, 1]})
             
 
             fig.suptitle('gym-wind-turbine')
@@ -414,18 +417,18 @@ class WindTurbine(gym.Env):
             ax_wind.grid(linestyle='--', linewidth=0.5)
 
             ax_P.set_ylabel('Power [kW]')
-            line_P = Line2D(self.x_t, self.y_P, color='black')
+            line_P = Line2D(self.x_t, self.y_P_aero, color='black')
             ax_P.add_line(line_P)
             ax_P.set_xlim(0, self.t_max)
             ax_P.set_ylim(0, 7000)
             ax_P.grid(linestyle='--', linewidth=0.5)
 
-            ax_T.set_ylabel('Thrust [kN]')
-            line_T = Line2D(self.x_t, self.y_T, color='black')
-            ax_T.add_line(line_T)
-            ax_T.set_xlim(0, self.t_max)
-            ax_T.set_ylim(0, 1000)
-            ax_T.grid(linestyle='--', linewidth=0.5)
+            # ax_T.set_ylabel('Thrust [kN]')
+            # line_T = Line2D(self.x_t, self.y_T, color='black')
+            # ax_T.add_line(line_T)
+            # ax_T.set_xlim(0, self.t_max)
+            # ax_T.set_ylim(0, 1000)
+            # ax_T.grid(linestyle='--', linewidth=0.5)
 
             ax_omega.set_ylabel('Rotor speed [rpm]')
             line_omega = Line2D(self.x_t, self.y_omega, color='black')
