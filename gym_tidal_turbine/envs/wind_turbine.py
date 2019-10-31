@@ -120,7 +120,7 @@ class WindTurbine(gym.Env):
 
         self.gen_torq = 0.606
         self.pitch = 0.0
-        self.omega = 6.8464
+        self.omega = 0.0
         self.next_omega = self.omega
 
         # Reward and score
@@ -264,15 +264,19 @@ class WindTurbine(gym.Env):
         aero_torq = Q[0] / (self.nrel_5mw_drivetrain_param['gear_box_ratio']*1e3)
         # observation = np.array([Uinf, P_gen, T[0] / 1e3, self.omega,
         #                         self.gen_torq, self.pitch])
-        observation = np.array([Uinf, P_aero, self.omega, aero_torq])
+        observation = np.array([Uinf, P_aero[0]/1e3, self.omega, aero_torq])
 
+        # print(P_aero[0])
+        # print(aero_torq, self.gen_torq)
+        # print(self.omega * Q[0] * np.pi / (30 * 1e3), P_gen)
+        # print(observation)
         # End the episode if actions or observations are out boundaries
         self.game_over = not (self.action_space.contains(action)
             and self.observation_space.contains(observation))
 
         # Compute reward
         if self.prev_reward is None:
-            reward, rew_ctrl = 0.0, 0.0
+            reward, rew_ctrl, rewards = 0.0, 0.0, np.array([0.0, 0.0, 0.0])
         else:
             P_weight = 1.0
             T_weight = 0.0
@@ -286,7 +290,9 @@ class WindTurbine(gym.Env):
             energy = P * (self.dt/3600.0)
             self.accum_energy += energy
 
-            P_chg_rate = (P - prev_P)/prev_P
+            eps = 1e-2
+            print(P, prev_P)
+            P_chg_rate = (P - prev_P)
             # T_chg_rate = (T - prev_T)/prev_T
             ctrl_chg = np.square(action).sum()
 
@@ -296,6 +302,7 @@ class WindTurbine(gym.Env):
             rew_alive = 0.05
             
             # reward = rew_power - rew_thrust - rew_control + rew_alive
+            rewards = np.array([ rew_power, - rew_control, rew_alive ])
             reward = rew_power - rew_control + rew_alive
             # print("{} = {} - {} - {} + {}".format(
             #     reward, rew_power, rew_thrust, rew_control, rew_alive))
@@ -337,10 +344,10 @@ class WindTurbine(gym.Env):
             self.y_P_aero[self.i] = observation[1]
             # self.y_T[self.i] = observation[2]
             self.y_omega[self.i] = observation[2]
-            self.y_gen_torq[self.i] = observation[3]
-            self.y_aero_torq[self.i] = aero_torq
+            self.y_gen_torq[self.i] = self.gen_torq
+            self.y_aero_torq[self.i] = observation[3]
             # self.y_pitch[self.i] = observation[5]
-            self.y_reward[self.i] = reward
+            self.y_rewards[self.i, :] = rewards
 
         # Prepare next iteration
         # Update Omega
@@ -360,9 +367,11 @@ class WindTurbine(gym.Env):
         self.t = 0.0  # Time
         self.i = 0
         self.ep += 1
-        self.gen_torq = 0.606
+        # self.gen_torq = 0.606
+        self.gen_torq = 1.0
         self.pitch = 0.0
-        self.omega = 6.8464
+        # self.omega = 6.8464
+        self.omega = 0.0
         self.next_omega = self.omega
         self.accum_reward = 0.0  # Accumulated reward
 
@@ -375,6 +384,8 @@ class WindTurbine(gym.Env):
             self.y_aero_torq = np.full(self.x_t.shape, np.nan)
             # self.y_pitch = np.full(self.x_t.shape, np.nan)
             self.y_reward = np.full(self.x_t.shape, np.nan)
+            self.y_reward = np.full(self.x_t.shape, np.nan)
+            self.y_rewards = np.full((self.x_t.shape[0], 3), np.nan)
 
         # return observation only
         self.accum_energy = 0.0
@@ -399,22 +410,21 @@ class WindTurbine(gym.Env):
                     raise
 
             # Plot
-            fig, (ax_wind,
-                  ax_P,
+            fig, (ax_P,
                   ax_omega,
                   ax_torq,
-                  ax_reward) = plt.subplots(5, figsize=(8, 12), sharex='all', tight_layout=True,
-                                            gridspec_kw={'height_ratios': [ 1, 1, 1, 2, 1]})
+                  ax_reward) = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
+                                            gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
             
 
             fig.suptitle('gym-wind-turbine')
 
-            ax_wind.set_ylabel('Wind [m/s]')
-            line_wind = Line2D(self.x_t, self.y_wind, color='black')
-            ax_wind.add_line(line_wind)
-            ax_wind.set_xlim(0, self.t_max)
-            ax_wind.set_ylim(0, 25)
-            ax_wind.grid(linestyle='--', linewidth=0.5)
+            # ax_wind.set_ylabel('Wind [m/s]')
+            # line_wind = Line2D(self.x_t, self.y_wind, color='black')
+            # ax_wind.add_line(line_wind)
+            # ax_wind.set_xlim(0, self.t_max)
+            # ax_wind.set_ylim(0, 25)
+            # ax_wind.grid(linestyle='--', linewidth=0.5)
 
             ax_P.set_ylabel('Power [kW]')
             line_P = Line2D(self.x_t, self.y_P_aero, color='black')
@@ -438,7 +448,8 @@ class WindTurbine(gym.Env):
             ax_omega.grid(linestyle='--', linewidth=0.5)
 
             ax_torq.set_ylabel('Torque [kNm]')
-            line_gen_torq = Line2D(self.x_t, self.y_gen_torq, color='blue')
+            # print(self.y_gen_torq, self.y_aero_torq)
+            line_gen_torq = Line2D(self.x_t, - self.y_gen_torq, color='blue')
             line_aero_torq = Line2D(self.x_t, self.y_aero_torq, color='red')
             ax_torq.add_line(line_gen_torq)
             ax_torq.add_line(line_aero_torq)
@@ -457,13 +468,21 @@ class WindTurbine(gym.Env):
             # ax_pitch.grid(linestyle='--', linewidth=0.5)
 
             ax_reward.set_ylabel('Reward [units]')
-            line_reward = Line2D(self.x_t, self.y_reward, color='green')
-            ax_reward.add_line(line_reward)
+            print(self.x_t.shape, self.y_rewards[:, 0].shape)
+            line_reward_0 = Line2D(self.x_t, self.y_rewards[:, 0], color='green')
+            line_reward_1 = Line2D(self.x_t, self.y_rewards[:, 1], color='blue')
+            line_reward_2 = Line2D(self.x_t, self.y_rewards[:, 2], color='red')
+            ax_reward.add_line(line_reward_0)
+            ax_reward.add_line(line_reward_1)
+            ax_reward.add_line(line_reward_2)
             ax_reward.set_xlim(0, self.t_max)
             #ax_reward.set_ylim(-200, 5600)
-            ax_reward.set_ylim(-1, 1)
+            ax_reward.set_ylim(-50, 50)
             ax_reward.grid(linestyle='--', linewidth=0.5)
             ax_reward.set_xlabel('Time [s]')
+            ax_reward.legend((line_reward_0, line_reward_1, line_reward_2),
+                           ('Power', 'Control', 'Alive'),
+                           loc='upper right', shadow=True)
 
             logger.info("Saving figure: {}".format(rout_path))
             plt.savefig(rout_path, dpi=72)
