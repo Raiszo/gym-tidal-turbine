@@ -89,7 +89,7 @@ class WindTurbine(gym.Env):
             [0, 7000],        # power [kW]
             # [0, 1000],        # thrust [kN]
             [0, 15],          # rotor speed [rpm]
-            [0.606, 47.403],  # generator torque [kNm]
+            [-50.0, 50.0],  # generator torque [kNm]
             # [0, 90]           # collective pitch [deg]
         ])
         self.observation_space = spaces.Box(
@@ -233,7 +233,6 @@ class WindTurbine(gym.Env):
 
     def _diff_omega(self, t_aero, t_gen, drivetrain_param):
         """
-        
         T_aero - N_gear * T_gen = (I_rotor + N_gear^2 * I_gen) * alpha
         alpha = (T_aero - N_gear * T_gen) / (I_rotor + N_gear^2 * I_gen)
         :return: alpha, angular acceleration [rpm/s^2]
@@ -242,7 +241,8 @@ class WindTurbine(gym.Env):
         i_rotor = drivetrain_param['rotor_inertia']
         i_gen = drivetrain_param['generator_inertia']
 
-        alpha = (t_aero - n_gear * t_gen) / (i_rotor + n_gear ** 2 * i_gen)
+        # alpha = (t_aero - n_gear * t_gen) / (i_rotor + n_gear ** 2 * i_gen)
+        alpha = (n_gear * t_gen - t_aero) / (i_rotor + n_gear ** 2 * i_gen)
         return alpha * self.dt * 30/np.pi
 
     def step(self, action):
@@ -252,11 +252,14 @@ class WindTurbine(gym.Env):
             self.gen_torq += action[0]
             # self.pitch += action[1]
 
+        # print('aero torq', action[0], self.gen_torq)
         # Simulate
         self.omega = self.next_omega
+        # print('omega', self.omega)
         Uinf = self.anamometer.read(self.t)
         # In recent version of CCBlade this funcion returns 4 elements
         P_aero, T, Q, _ = self.rotor.evaluate([Uinf], [self.omega], [self.pitch])
+        # print(self.gen_torq, self.omega, P_aero, Q)
         P_gen = (self.omega
                  * self.gen_torq
                  * self.nrel_5mw_drivetrain_param['gear_box_ratio']
@@ -264,7 +267,9 @@ class WindTurbine(gym.Env):
         aero_torq = Q[0] / (self.nrel_5mw_drivetrain_param['gear_box_ratio']*1e3)
         # observation = np.array([Uinf, P_gen, T[0] / 1e3, self.omega,
         #                         self.gen_torq, self.pitch])
+        # print('torque aero', aero_torq, Q[0])
         observation = np.array([Uinf, P_aero[0]/1e3, self.omega, aero_torq])
+        print(observation)
 
         # print(P_aero[0])
         # print(aero_torq, self.gen_torq)
@@ -291,7 +296,7 @@ class WindTurbine(gym.Env):
             self.accum_energy += energy
 
             eps = 1e-2
-            print(P, prev_P)
+            # print(P, prev_P)
             P_chg_rate = (P - prev_P)
             # T_chg_rate = (T - prev_T)/prev_T
             ctrl_chg = np.square(action).sum()
@@ -430,7 +435,7 @@ class WindTurbine(gym.Env):
             line_P = Line2D(self.x_t, self.y_P_aero, color='black')
             ax_P.add_line(line_P)
             ax_P.set_xlim(0, self.t_max)
-            ax_P.set_ylim(0, 7000)
+            ax_P.set_ylim(0, 2100)
             ax_P.grid(linestyle='--', linewidth=0.5)
 
             # ax_T.set_ylabel('Thrust [kN]')
@@ -449,12 +454,13 @@ class WindTurbine(gym.Env):
 
             ax_torq.set_ylabel('Torque [kNm]')
             # print(self.y_gen_torq, self.y_aero_torq)
-            line_gen_torq = Line2D(self.x_t, - self.y_gen_torq, color='blue')
+            line_gen_torq = Line2D(self.x_t, self.y_gen_torq, color='blue')
             line_aero_torq = Line2D(self.x_t, self.y_aero_torq, color='red')
             ax_torq.add_line(line_gen_torq)
             ax_torq.add_line(line_aero_torq)
             ax_torq.set_xlim(0, self.t_max)
-            ax_torq.set_ylim(0.606, 47.403)
+            # ax_torq.set_ylim(0.606, 47.403)
+            ax_torq.set_ylim(-30.0, 70.0)
             ax_torq.grid(linestyle='--', linewidth=0.5)
             ax_torq.legend((line_gen_torq, line_aero_torq),
                            ('Gen. Torq', 'Aero. Torq'),
@@ -468,7 +474,7 @@ class WindTurbine(gym.Env):
             # ax_pitch.grid(linestyle='--', linewidth=0.5)
 
             ax_reward.set_ylabel('Reward [units]')
-            print(self.x_t.shape, self.y_rewards[:, 0].shape)
+            # print(self.x_t.shape, self.y_rewards[:, 0].shape)
             line_reward_0 = Line2D(self.x_t, self.y_rewards[:, 0], color='green')
             line_reward_1 = Line2D(self.x_t, self.y_rewards[:, 1], color='blue')
             line_reward_2 = Line2D(self.x_t, self.y_rewards[:, 2], color='red')
@@ -477,7 +483,7 @@ class WindTurbine(gym.Env):
             ax_reward.add_line(line_reward_2)
             ax_reward.set_xlim(0, self.t_max)
             #ax_reward.set_ylim(-200, 5600)
-            ax_reward.set_ylim(-50, 50)
+            ax_reward.set_ylim(-20, 20)
             ax_reward.grid(linestyle='--', linewidth=0.5)
             ax_reward.set_xlabel('Time [s]')
             ax_reward.legend((line_reward_0, line_reward_1, line_reward_2),
