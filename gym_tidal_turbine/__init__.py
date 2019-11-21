@@ -8,16 +8,24 @@ register(
 
 register(
     id='WindTurbine-v0',
-    entry_point='gym_tidal_turbine.envs:WindTurbine',
+    entry_point='gym_tidal_turbine.envs:WindTurbine_v0',
     max_episode_steps=int(30.0/(1.0/20)),  # 30s -> 600 steps
     kwargs={
         'env_settings': {
             'timestep': 1.0/20.0,
             'duration': 30.0,
-            'wind': {
-                'mode': 'constant',
-                'speed': 8.0,
-            }
+        }
+    }
+)
+
+register(
+    id='WindTurbine-v1',
+    entry_point='gym_tidal_turbine.envs:WindTurbine_v1',
+    max_episode_steps=int(60.0/(1.0/20)),  # 30s -> 600 steps
+    kwargs={
+        'env_settings': {
+            'timestep': 1.0/20.0,
+            'duration': 60.0,
         }
     }
 )

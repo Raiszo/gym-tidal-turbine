@@ -3,19 +3,16 @@ import gym_tidal_turbine
 
 import numpy as np
 
-env = gym.make('TidalTurbine-v0')
+env = gym.make('WindTurbine-v1')
 obs = env.reset()
 
-k = 0.5 * 1014.0 * np.pi * 0.6 ** 5 * (0.41 / 6 ** 3)
-
-for _ in range(100):
-    # Controller here
-    Tm_opt = k * obs[0] ** 2
-    # print(Tm_opt)
-    a = np.array([Tm_opt])
+done = False
+# while not done:
+for _ in range(10):
+    # Tm_opt = k * obs[0] ** 2
+    a = np.array([0.0 * 0.05])
     
     obs, r, done, _ = env.step(a)
-    print(obs, Tm_opt)
-    if done:
-        print('turbine stopped')
-        break
+    # print(obs, Tm_opt)
+
+# env.render()
