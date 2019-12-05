@@ -33,7 +33,7 @@ class WindTurbine(gym.Env):
 
         # Set Action limits
         self.ac_space_limits = np.array([
-            [-15.0, 15.0]       # gen torque rate [kNm/s]
+            [-3.0, 3.0]       # gen torque rate [kNm/s]
         ]) * self.dt
         # self.action_space = spaces.Box(
         #     low=self.ac_space_limits[:1],
@@ -112,7 +112,7 @@ class WindTurbine(gym.Env):
 
         reward, rew_ctrl, rewards = 0.0, 0.0, np.array([0.0, 0.0, 0.0])
 
-        P = p_aero
+        P = p_aero/1e3
         (_, prev_P, _, _) = self.prev_observation
         P_weight = 1.0
         T_weight = 0.0
@@ -254,7 +254,7 @@ class WindTurbine(gym.Env):
         ax_reward.add_line(line_reward_2)
         ax_reward.set_xlim(0, self.t_max)
         #ax_reward.set_ylim(-200, 5600)
-        ax_reward.set_ylim(-20, 20)
+        ax_reward.set_ylim(-20, 40)
         ax_reward.grid(linestyle='--', linewidth=0.5)
         ax_reward.set_xlabel('Time [s]')
         ax_reward.legend((line_reward_0, line_reward_1, line_reward_2),
