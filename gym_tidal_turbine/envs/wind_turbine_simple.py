@@ -33,11 +33,17 @@ class WindTurbine(gym.Env):
 
         # Set Action limits
         self.ac_space_limits = np.array([
-            [-5.0, 5.0]       # gen torque rate [kNm/s]
+            [-15.0, 15.0]       # gen torque rate [kNm/s]
         ]) * self.dt
+        # self.action_space = spaces.Box(
+        #     low=self.ac_space_limits[:1],
+        #     high=self.ac_space_limits[-1:],
+        #     # shape=(1,)
+        # )
         self.action_space = spaces.Box(
-            low=self.ac_space_limits[:1],
-            high=self.ac_space_limits[-1:],
+            low=-15.0,
+            high=15.0,
+            shape=(1,)
         )
 
         self.Uinf = 11.0        # wind speed in the inf [m/s]
