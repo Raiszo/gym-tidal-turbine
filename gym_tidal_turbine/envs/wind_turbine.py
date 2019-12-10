@@ -24,7 +24,7 @@ class WindTurbine(gym.Env):
         self.obs_space_limits = np.array([
             [0, 30],            # wind speed [m/s]
             [-10, 100000],      # aero power [kW]
-            [0, 15],           # rotor speed omega [rpm]
+            [0, 15],            # rotor speed omega [rpm]
             [-5000, 5000],      # aero torque [kNm]
         ])
         self.observation_space = spaces.Box(
@@ -42,7 +42,7 @@ class WindTurbine(gym.Env):
         )
 
 
-        self.Uinf = 8.0        # wind speed in the inf [m/s]
+        self.Uinf = 10.0        # wind speed in the inf [m/s]
         self.nrel_5mw_drivetrain_param = {
             'N_gear': 97.0,              # 97:1 gear box ratio
             'I_rotor': 38759228.0,       # kg*m^2 rotor inertia
@@ -53,7 +53,7 @@ class WindTurbine(gym.Env):
     def reset(self):
         self.t = 0.0
         self.i = 0
-        self.omega = 0.0
+        self.omega = 2.0
         self.next_omega = self.omega # rotor rotation speed [rpm/s]
         self.t_gen = 0.0
         self.pitch = 0.0
@@ -99,21 +99,21 @@ class WindTurbine(gym.Env):
         # if self.action_space.contains(action):
         action = np.clip(action, self.ac_space_limits[:, 0], self.ac_space_limits[:, 1])
         self.t_gen += action[0]
-        print('torque gen', self.t_gen)
+        # print('torque gen', self.t_gen)
 
         self.omega = self.next_omega
         omega_rad_s = self.omega * np.pi / 30
         
 
         p_aero, t_aero = self.aero_evaluate(self.Uinf, self.omega, self.pitch)
-        print('+++')
-        print('omega, p_aero, t_aero')
-        print(self.omega, p_aero, t_aero)
-        print('+++')
+        # print('+++')
+        # print('omega, p_aero, t_aero')
+        # print(self.omega, p_aero, t_aero)
+        # print('+++')
         # Gonna scale down the aerodynamic torq compare it with the generator torque
         t_aero = t_aero / self.nrel_5mw_drivetrain_param['N_gear']
         observation = np.array([self.Uinf, p_aero, self.omega, t_aero])
-        print(observation)
+        # print(observation)
         
         done = not self.observation_space.contains(observation)
 
@@ -143,7 +143,7 @@ class WindTurbine(gym.Env):
         diff_omega = self._diff_omega(t_aero, self. t_gen, self.nrel_5mw_drivetrain_param) \
             * self.dt * 30/np.pi
 
-        print('diff', diff_omega)
+        # print('diff', diff_omega)
 
         self.next_omega += diff_omega
         self.t += self.dt
@@ -227,7 +227,7 @@ class WindTurbine(gym.Env):
         for i in range(len(r)):
             af[i] = airfoil_types[af_idx[i]]
 
-        tilt = -5.0
+        tilt = 5.0
         precone = 2.5
         yaw = 0.0
 
