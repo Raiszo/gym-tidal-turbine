@@ -22,9 +22,9 @@ class WindTurbine(gym.Env):
         # Set Observation limits
         self.obs_space_limits = np.array([
             [0, 30],            # wind speed [m/s]
-            [-10, 100000],      # aero power [kW]
+            [-10, np.finfo(np.float32).max], # aero power [kW]
             [0, 50],            # rotor speed omega [rad/s]
-            [-5000, 5000],      # aero torque [kNm]
+            [-5000, np.finfo(np.float32).max], # aero torque [kNm]
         ])
         self.observation_space = spaces.Box(
             low=self.obs_space_limits[:, 0],
@@ -33,7 +33,7 @@ class WindTurbine(gym.Env):
 
         # Set Action limits
         self.ac_space_limits = np.array([
-            [-3.0, 3.0]       # gen torque rate [kNm/s]
+            [-25.0, 25.0]       # gen torque rate [kNm/s]
         ]) * self.dt
         # self.action_space = spaces.Box(
         #     low=self.ac_space_limits[:1],
@@ -62,7 +62,7 @@ class WindTurbine(gym.Env):
     def reset(self):
         self.t = 0.0
         self.i = 0
-        self.omega = 0.5
+        self.omega = 1.0
         self.next_omega = self.omega # rotor rotation speed [rad/s]
         self.t_gen = 0.0
         self.pitch = 0.0
@@ -89,8 +89,10 @@ class WindTurbine(gym.Env):
 
     def step(self, action):
         # if self.action_space.contains(action):
-        action = np.clip(action, self.ac_space_limits[:, 0], self.ac_space_limits[:, 1])
-        self.t_gen += action[0]
+        # print(action)
+        # action = np.clip(action, self.ac_space_limits[:, 0], self.ac_space_limits[:, 1])
+        # print(action/100)
+        self.t_gen += action[0] * 10
         self.t_gen = self.t_gen * (self.t_gen > 0)
         # print('torque gen', self.t_gen)
 
@@ -128,15 +130,19 @@ class WindTurbine(gym.Env):
         self.plot_vars['x_t'][self.i] = self.t
         self.plot_vars['P_aero'][self.i] = observation[1]
         self.plot_vars['omega'][self.i] = observation[2]
-        self.plot_vars['T_aero'][self.i ] = observation[3] / self.drivetrain_param["N_gear"]
-        self.plot_vars['T_gen'][self.i] = self.t_gen
+        self.plot_vars['T_aero'][self.i ] = observation[3]
+        self.plot_vars['T_gen'][self.i] = self.t_gen / 1e3
         self.plot_vars['rewards'][self.i, :] = rewards
 
         diff_omega = self._diff_omega(t_aero, self.t_gen, self.omega, self.drivetrain_param)
+        # print(diff_omega)
 
         # print('diff', diff_omega)
 
-        self.next_omega += diff_omega
+        self.next_omega += diff_omega * self.dt
+        # clamp this to positive, values to not overflow the C_p equation in the exponential
+        # and do not let omega be zero :v
+        self.next_omega = self.next_omega if (self.next_omega > 5e-1) else 5e-1
         self.t += self.dt
         self.i += 1
         self.prev_observation = observation
@@ -162,7 +168,10 @@ class WindTurbine(gym.Env):
 
         I_total = I_rotor + N_gear ** 2 * I_gen
         K_total = K_rotor + N_gear ** 2 * K_gen
-        return (t_aero - K_total * omega - N_gear * t_gen) / I_total
+        # print(t_aero, K_total * omega, N_gear * t_gen)
+        # return (t_aero - K_total * omega - N_gear * t_gen) / I_total
+        # print(t_gen, t_aero, N_gear * t_gen, (t_aero - N_gear * t_gen) / I_total)
+        return (t_aero - N_gear * t_gen) / I_total
 
     def render(self, mode='human', close=False):
         self.plot_and_save()
@@ -179,6 +188,7 @@ class WindTurbine(gym.Env):
             lam = R * omega / Uinf # (4)
             m_inv = 1/(lam + 0.08*pitch) - 0.035/(pitch**3 + 1) # (3)
             C_p = 0.22 * (116*m_inv - 0.4*pitch - 5)*np.exp(-12.5*m_inv) # (2)
+            # print(lam, m_inv, C_p)
             C_p = relu(C_p)
             P = 0.5 * rho * R**2 * C_p * Uinf**3
             Q = P/omega
@@ -232,13 +242,13 @@ class WindTurbine(gym.Env):
 
         ax_torq.set_ylabel('Torque [kNm]')
         # print(self.y_gen_torq, self.y_aero_torq)
-        line_gen_torq = Line2D(x_t, pvars['T_gen'], color='blue')
+        line_gen_torq = Line2D(x_t, pvars['T_gen'] * self.drivetrain_param["N_gear"], color='blue')
         line_aero_torq = Line2D(x_t, pvars['T_aero'], color='red')
         ax_torq.add_line(line_gen_torq)
         ax_torq.add_line(line_aero_torq)
         ax_torq.set_xlim(0, self.t_max)
         # ax_torq.set_ylim(0.606, 47.403)
-        ax_torq.set_ylim(-1.0, 10.0)
+        ax_torq.set_ylim(-1.0, 500.0)
         ax_torq.grid(linestyle='--', linewidth=0.5)
         ax_torq.legend((line_gen_torq, line_aero_torq),
                        ('Gen. Torq', 'Aero. Torq'),
@@ -254,7 +264,7 @@ class WindTurbine(gym.Env):
         ax_reward.add_line(line_reward_2)
         ax_reward.set_xlim(0, self.t_max)
         #ax_reward.set_ylim(-200, 5600)
-        ax_reward.set_ylim(-20, 40)
+        ax_reward.set_ylim(-10, 10)
         ax_reward.grid(linestyle='--', linewidth=0.5)
         ax_reward.set_xlabel('Time [s]')
         ax_reward.legend((line_reward_0, line_reward_1, line_reward_2),

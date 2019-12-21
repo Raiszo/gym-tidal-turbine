@@ -97,7 +97,7 @@ class WindTurbine(gym.Env):
             high=obs_space_min_max_limits[:, 1])
 
         act_space_min_max_limits = np.array([
-            [-15.0, 15.0],  # gen. torque rate [kNm/s]
+            [-20.0, 20.0],  # gen. torque rate [kNm/s]
             [-8.0, 8.0]     # pitch rate [deg/s]
         ]) * self.dt
         # self.action_space = spaces.Box(
@@ -241,8 +241,8 @@ class WindTurbine(gym.Env):
         i_rotor = drivetrain_param['rotor_inertia']
         i_gen = drivetrain_param['generator_inertia']
 
-        # alpha = (t_aero - n_gear * t_gen) / (i_rotor + n_gear ** 2 * i_gen)
-        alpha = (n_gear * t_gen - t_aero) / (i_rotor + n_gear ** 2 * i_gen)
+        alpha = (t_aero - n_gear * t_gen) / (i_rotor + n_gear ** 2 * i_gen)
+        # alpha = (n_gear * t_gen - t_aero) / (i_rotor + n_gear ** 2 * i_gen)
         return alpha * self.dt * 30/np.pi
 
     def step(self, action):
@@ -269,7 +269,7 @@ class WindTurbine(gym.Env):
         #                         self.gen_torq, self.pitch])
         # print('torque aero', aero_torq, Q[0])
         observation = np.array([Uinf, P_aero[0]/1e3, self.omega, aero_torq])
-        print(observation)
+        # print(observation)
 
         # print(P_aero[0])
         # print(aero_torq, self.gen_torq)

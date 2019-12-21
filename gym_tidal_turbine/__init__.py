@@ -33,11 +33,11 @@ register(
 register(
     id='WindTurbine-v2',
     entry_point='gym_tidal_turbine.envs:WindTurbine_v2',
-    max_episode_steps=int(40.0/(1.0/20)),  # 30s -> 600 steps
+    max_episode_steps=int(12 * 60.0/(1.0/20)),  # 30s -> 600 steps
     kwargs={
         'env_settings': {
             'timestep': 1.0/20.0,
-            'duration': 40.0,
+            'duration': 12 * 60.0,
         }
     }
 )
