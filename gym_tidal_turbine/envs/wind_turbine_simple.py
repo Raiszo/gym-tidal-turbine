@@ -174,7 +174,7 @@ class WindTurbine(gym.Env):
         return (t_aero - N_gear * t_gen) / I_total
 
     def render(self, mode='human', close=False):
-        self.plot_and_save()
+        self.save_plots()
 
     def _get_timestamp(self):
         return datetime.now().strftime('%Y%m%d%H%M%S')
