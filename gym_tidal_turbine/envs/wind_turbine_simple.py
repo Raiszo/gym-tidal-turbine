@@ -197,81 +197,177 @@ class WindTurbine(gym.Env):
 
         return rotor
 
-    def plot_and_save(self):
+
+    def plot_power(ax, x, y):
+        ax.set_ylabel('Power [kW]')
+        line_P = Line2D(x, y, color='black')
+        ax.add_line(line_P)
+        ax.set_xlim(0, y.shape[0])
+        # ax.set_xlim(0, self.t_max)
+        ax.set_ylim(0, 2100)
+        ax.grid(linestyle='--', linewidth=0.5)
+
+    def plot_omega(ax, x, y):
+        ax.set_ylabel('Rotor speed [rpm]')
+        line_omega = Line2D(x, y, color='black')
+        ax.add_line(line_omega)
+        ax.set_xlim(0, y.shape[0])
+        ax.set_ylim(0, 50)
+        ax.grid(linestyle='--', linewidth=0.5)
+
+    def plot_torq(ax, x, y):
+        """
+        x: x_t
+        y: [ t_gen, t_aero ]
+        """
+
+        ax.set_ylabel('Torque [kNm]')
+        # print(self.y_gen_torq, self.y_aero_torq)
+        line_gen_torq = Line2D(x, y[0], color='blue')
+        line_aero_torq = Line2D(x, y[1], color='red')
+        ax.add_line(line_gen_torq)
+        ax.add_line(line_aero_torq)
+        ax.set_xlim(0, y[0].shape[0])
+        # ax.set_xlim(0, self.t_max)
+        # ax.set_ylim(0.606, 47.403)
+        ax.set_ylim(-1.0, 500.0)
+        ax.grid(linestyle='--', linewidth=0.5)
+        ax.legend((line_gen_torq, line_aero_torq),
+                  ('Gen. Torq', 'Aero. Torq'),
+                  loc='upper right', shadow=True)
+
+    def plot_reward(ax, x, y):
+        ax.set_ylabel('Reward [units]')
+        # print(x_t.shape, self.y_rewards[:, 0].shape)
+        line_reward_0 = Line2D(x, y[:, 0], color='green')
+        line_reward_1 = Line2D(x, y[:, 1], color='blue')
+        line_reward_2 = Line2D(x, y[:, 2], color='red')
+        ax.add_line(line_reward_0)
+        ax.add_line(line_reward_1)
+        ax.add_line(line_reward_2)
+        ax.set_xlim(0, y.shape[0])
+        # ax.set_xlim(0, self.t_max)
+        #ax.set_ylim(-200, 5600)
+        ax.set_ylim(-10, 10)
+        ax.grid(linestyle='--', linewidth=0.5)
+        ax.set_xlabel('Time [s]')
+        ax.legend((line_reward_0, line_reward_1, line_reward_2),
+                  ('Power', 'Control', 'Alive'),
+                  loc='upper right', shadow=True)
+
+    def save_plots(self, split=False):
         time = self._get_timestamp()
-        rout_dir = path.join('gwt_output',
+        file_dir = path.join('gwt_output',
                              'render_{}'.format(time))
-        rout_filename = '{}.png'.format(time)
-        rout_path = path.join(rout_dir, rout_filename)
 
         # Create render output directory
         try:
-            makedirs(rout_dir)
+            makedirs(file_dir)
         except OSError:
-            if not path.isdir(rout_dir):
+            if not path.isdir(file_dir):
                 raise
-
-        # Plot
-        fig, (ax_P,
-              ax_omega,
-              ax_torq,
-              ax_reward) = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
-                                        gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
-        
-
-        fig.suptitle('gym-wind-turbine')
 
         # Handy variables
         x_t = self.plot_vars['x_t']
         pvars = self.plot_vars
+
+        plot_functions = [
+            [self.plot_power, x_t, pvars['P_aero'], 'power'],
+            [self.plot_omega, x_t, pvars['omega'], 'omega'],
+            [self.plot_torq, x_t, [pvars['T_gen'] * self.drivetrain_param["N_gear"], pvars['T_aero']], 'torque'],
+            [self.plot_reward, x_t, pvars['rewards'], 'rewards'],
+        ]
+
+        if split:
+            for plot_fn, x, y, name in plot_functions:
+                print('name', name)
+                filename = '{}.png'.format(name)
+                filepath = path.join(rout_dir, rout_filename)
+
+                fg, ax = plt.subplots()
+                fig.suptitle(name)
+                plot_fn(ax, x, y)
+                fg.savefig(filepath, dpi=72)
+        else:
+            file_dir = path.join('gwt_output',
+                                 'render_{}'.format(time))
+            filename = 'all_plots.png'
+            filepath = path.join(rout_dir, filename)
+            fig, axs = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
+                                            gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
+
+            # fig.suptitle('gym-wind-turbine')
+
+            z = zip(plot_functions, axs)
+            for plot, ax in plot_functions:
+                plot_fn, x, y, _ = plot
+                plot_fn(ax, x, y)
+
+            fig.savefig(filepath, dpi=72)
+
+
+            
+        # # Plot
+        # fig, (ax_P,
+        #       ax_omega,
+        #       ax_torq,
+        #       ax_reward) = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
+        #                                 gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
         
 
-        ax_P.set_ylabel('Power [kW]')
-        line_P = Line2D(x_t, pvars['P_aero'], color='black')
-        ax_P.add_line(line_P)
-        ax_P.set_xlim(0, self.t_max)
-        ax_P.set_ylim(0, 2100)
-        ax_P.grid(linestyle='--', linewidth=0.5)
+        # fig.suptitle('gym-wind-turbine')
 
-        ax_omega.set_ylabel('Rotor speed [rpm]')
-        line_omega = Line2D(x_t, pvars['omega'], color='black')
-        ax_omega.add_line(line_omega)
-        ax_omega.set_xlim(0, self.t_max)
-        ax_omega.set_ylim(0, 50)
-        ax_omega.grid(linestyle='--', linewidth=0.5)
+        # # Handy variables
+        # x_t = self.plot_vars['x_t']
+        # pvars = self.plot_vars
+        
 
-        ax_torq.set_ylabel('Torque [kNm]')
-        # print(self.y_gen_torq, self.y_aero_torq)
-        line_gen_torq = Line2D(x_t, pvars['T_gen'] * self.drivetrain_param["N_gear"], color='blue')
-        line_aero_torq = Line2D(x_t, pvars['T_aero'], color='red')
-        ax_torq.add_line(line_gen_torq)
-        ax_torq.add_line(line_aero_torq)
-        ax_torq.set_xlim(0, self.t_max)
-        # ax_torq.set_ylim(0.606, 47.403)
-        ax_torq.set_ylim(-1.0, 500.0)
-        ax_torq.grid(linestyle='--', linewidth=0.5)
-        ax_torq.legend((line_gen_torq, line_aero_torq),
-                       ('Gen. Torq', 'Aero. Torq'),
-                       loc='upper right', shadow=True)
+        # ax_P.set_ylabel('Power [kW]')
+        # line_P = Line2D(x_t, pvars['P_aero'], color='black')
+        # ax_P.add_line(line_P)
+        # ax_P.set_xlim(0, self.t_max)
+        # ax_P.set_ylim(0, 2100)
+        # ax_P.grid(linestyle='--', linewidth=0.5)
 
-        ax_reward.set_ylabel('Reward [units]')
-        # print(x_t.shape, self.y_rewards[:, 0].shape)
-        line_reward_0 = Line2D(x_t, pvars['rewards'][:, 0], color='green')
-        line_reward_1 = Line2D(x_t, pvars['rewards'][:, 1], color='blue')
-        line_reward_2 = Line2D(x_t, pvars['rewards'][:, 2], color='red')
-        ax_reward.add_line(line_reward_0)
-        ax_reward.add_line(line_reward_1)
-        ax_reward.add_line(line_reward_2)
-        ax_reward.set_xlim(0, self.t_max)
-        #ax_reward.set_ylim(-200, 5600)
-        ax_reward.set_ylim(-10, 10)
-        ax_reward.grid(linestyle='--', linewidth=0.5)
-        ax_reward.set_xlabel('Time [s]')
-        ax_reward.legend((line_reward_0, line_reward_1, line_reward_2),
-                         ('Power', 'Control', 'Alive'),
-                         loc='upper right', shadow=True)
+        # ax_omega.set_ylabel('Rotor speed [rpm]')
+        # line_omega = Line2D(x_t, pvars['omega'], color='black')
+        # ax_omega.add_line(line_omega)
+        # ax_omega.set_xlim(0, self.t_max)
+        # ax_omega.set_ylim(0, 50)
+        # ax_omega.grid(linestyle='--', linewidth=0.5)
 
-        # logger.info("Saving figure: {}".format(rout_path))
-        plt.savefig(rout_path, dpi=72)
-        # plt.close(fig)
-        # plt.show()
+        # ax_torq.set_ylabel('Torque [kNm]')
+        # # print(self.y_gen_torq, self.y_aero_torq)
+        # line_gen_torq = Line2D(x_t, pvars['T_gen'] * self.drivetrain_param["N_gear"], color='blue')
+        # line_aero_torq = Line2D(x_t, pvars['T_aero'], color='red')
+        # ax_torq.add_line(line_gen_torq)
+        # ax_torq.add_line(line_aero_torq)
+        # ax_torq.set_xlim(0, self.t_max)
+        # # ax_torq.set_ylim(0.606, 47.403)
+        # ax_torq.set_ylim(-1.0, 500.0)
+        # ax_torq.grid(linestyle='--', linewidth=0.5)
+        # ax_torq.legend((line_gen_torq, line_aero_torq),
+        #                ('Gen. Torq', 'Aero. Torq'),
+        #                loc='upper right', shadow=True)
+
+        # ax_reward.set_ylabel('Reward [units]')
+        # # print(x_t.shape, self.y_rewards[:, 0].shape)
+        # line_reward_0 = Line2D(x_t, pvars['rewards'][:, 0], color='green')
+        # line_reward_1 = Line2D(x_t, pvars['rewards'][:, 1], color='blue')
+        # line_reward_2 = Line2D(x_t, pvars['rewards'][:, 2], color='red')
+        # ax_reward.add_line(line_reward_0)
+        # ax_reward.add_line(line_reward_1)
+        # ax_reward.add_line(line_reward_2)
+        # ax_reward.set_xlim(0, self.t_max)
+        # #ax_reward.set_ylim(-200, 5600)
+        # ax_reward.set_ylim(-10, 10)
+        # ax_reward.grid(linestyle='--', linewidth=0.5)
+        # ax_reward.set_xlabel('Time [s]')
+        # ax_reward.legend((line_reward_0, line_reward_1, line_reward_2),
+        #                  ('Power', 'Control', 'Alive'),
+        #                  loc='upper right', shadow=True)
+
+        # # logger.info("Saving figure: {}".format(rout_path))
+        # plt.savefig(rout_path, dpi=72)
+        # # plt.close(fig)
+        # # plt.show()
