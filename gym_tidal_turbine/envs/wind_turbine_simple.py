@@ -279,7 +279,7 @@ class WindTurbine(gym.Env):
                 file_name = '{}.png'.format(name)
                 file_path = path.join(file_dir, file_name)
 
-                fg, ax = plt.subplots()
+                fg, ax = plt.subplots(figsize=[6.4, 4.8]*2)
                 fg.suptitle(name)
                 plot_fn(ax, x, y)
                 ax.set_xlabel('Time [s]')
