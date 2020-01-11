@@ -174,7 +174,7 @@ class WindTurbine(gym.Env):
         return (t_aero - N_gear * t_gen) / I_total
 
     def render(self, mode='human', close=False):
-        self.save_plots()
+        self.save_plots(True)
 
     def _get_timestamp(self):
         return datetime.now().strftime('%Y%m%d%H%M%S')
@@ -198,37 +198,34 @@ class WindTurbine(gym.Env):
         return rotor
 
 
-    def plot_power(ax, x, y):
+    def plot_power(self, ax, x, y):
         ax.set_ylabel('Power [kW]')
-        line_P = Line2D(x, y, color='black')
+        line_P = Line2D(x, y, color='blue')
         ax.add_line(line_P)
-        ax.set_xlim(0, y.shape[0])
-        # ax.set_xlim(0, self.t_max)
+        ax.set_xlim(0, self.t_max)
         ax.set_ylim(0, 2100)
         ax.grid(linestyle='--', linewidth=0.5)
 
-    def plot_omega(ax, x, y):
+    def plot_omega(self, ax, x, y):
         ax.set_ylabel('Rotor speed [rpm]')
-        line_omega = Line2D(x, y, color='black')
+        line_omega = Line2D(x, y, color='blue')
         ax.add_line(line_omega)
-        ax.set_xlim(0, y.shape[0])
+        ax.set_xlim(0, self.t_max)
         ax.set_ylim(0, 50)
         ax.grid(linestyle='--', linewidth=0.5)
 
-    def plot_torq(ax, x, y):
+    def plot_torq(self, ax, x, y):
         """
         x: x_t
         y: [ t_gen, t_aero ]
         """
 
         ax.set_ylabel('Torque [kNm]')
-        # print(self.y_gen_torq, self.y_aero_torq)
         line_gen_torq = Line2D(x, y[0], color='blue')
         line_aero_torq = Line2D(x, y[1], color='red')
         ax.add_line(line_gen_torq)
         ax.add_line(line_aero_torq)
-        ax.set_xlim(0, y[0].shape[0])
-        # ax.set_xlim(0, self.t_max)
+        ax.set_xlim(0, self.t_max)
         # ax.set_ylim(0.606, 47.403)
         ax.set_ylim(-1.0, 500.0)
         ax.grid(linestyle='--', linewidth=0.5)
@@ -236,7 +233,7 @@ class WindTurbine(gym.Env):
                   ('Gen. Torq', 'Aero. Torq'),
                   loc='upper right', shadow=True)
 
-    def plot_reward(ax, x, y):
+    def plot_reward(self, ax, x, y):
         ax.set_ylabel('Reward [units]')
         # print(x_t.shape, self.y_rewards[:, 0].shape)
         line_reward_0 = Line2D(x, y[:, 0], color='green')
@@ -245,12 +242,10 @@ class WindTurbine(gym.Env):
         ax.add_line(line_reward_0)
         ax.add_line(line_reward_1)
         ax.add_line(line_reward_2)
-        ax.set_xlim(0, y.shape[0])
-        # ax.set_xlim(0, self.t_max)
+        ax.set_xlim(0, self.t_max)
         #ax.set_ylim(-200, 5600)
         ax.set_ylim(-10, 10)
         ax.grid(linestyle='--', linewidth=0.5)
-        ax.set_xlabel('Time [s]')
         ax.legend((line_reward_0, line_reward_1, line_reward_2),
                   ('Power', 'Control', 'Alive'),
                   loc='upper right', shadow=True)
@@ -285,8 +280,9 @@ class WindTurbine(gym.Env):
                 file_path = path.join(file_dir, file_name)
 
                 fg, ax = plt.subplots()
-                fig.suptitle(name)
+                fg.suptitle(name)
                 plot_fn(ax, x, y)
+                ax.set_xlabel('Time [s]')
                 fg.savefig(file_path, dpi=72)
         else:
             file_name = 'all_plots.png'
@@ -297,10 +293,12 @@ class WindTurbine(gym.Env):
             # fig.suptitle('gym-wind-turbine')
 
             z = zip(plot_functions, axs)
-            for plot, ax in plot_functions:
+            for plot, ax in z:
                 plot_fn, x, y, _ = plot
                 plot_fn(ax, x, y)
 
+            axs[-1].set_xlabel('Time [s]')
+            
             fig.savefig(file_path, dpi=72)
 
 
