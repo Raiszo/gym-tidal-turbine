@@ -281,18 +281,16 @@ class WindTurbine(gym.Env):
         if split:
             for plot_fn, x, y, name in plot_functions:
                 print('name', name)
-                filename = '{}.png'.format(name)
-                filepath = path.join(rout_dir, rout_filename)
+                file_name = '{}.png'.format(name)
+                file_path = path.join(file_dir, file_name)
 
                 fg, ax = plt.subplots()
                 fig.suptitle(name)
                 plot_fn(ax, x, y)
-                fg.savefig(filepath, dpi=72)
+                fg.savefig(file_path, dpi=72)
         else:
-            file_dir = path.join('gwt_output',
-                                 'render_{}'.format(time))
-            filename = 'all_plots.png'
-            filepath = path.join(rout_dir, filename)
+            file_name = 'all_plots.png'
+            file_path = path.join(file_dir, file_name)
             fig, axs = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
                                             gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
 
@@ -303,7 +301,7 @@ class WindTurbine(gym.Env):
                 plot_fn, x, y, _ = plot
                 plot_fn(ax, x, y)
 
-            fig.savefig(filepath, dpi=72)
+            fig.savefig(file_path, dpi=72)
 
 
             
