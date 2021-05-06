@@ -1,18 +1,48 @@
+from argparse import ArgumentParser
+import gym
+import gym_tidal_turbine
+import numpy as np
 import tensorflow as tf
-from rl_agents.ppo import get_model, get_env
+from rl_agents.ppo import GaussianSample, get_env, get_env_step, TFStep
+from pathlib import Path
+import os
 
-"""
-Overview
-- [] get windturbine environment
-- [] get model, should use manually serialized architecture values if possible
-- [] rollout loop, better to rely on tf by using get_env_step from ppo
-- [] plot from tf-arrays, convert them to numpy and to matplotlib
-"""
+@tf.function
+def run_episode(env: gym.Env, env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Model, max_steps: int) -> float:
+    initial_state_shape = initial_state.shape
+    state = initial_state
 
-env = get_env('WindTurbine-v2')
+    reward_sum = 0.0
 
-# only valid for continuous action and observation spaces
-# these values should be manually serialized
-obs_dim, act_dim = env.observation_space.shape[0], env.action_space.shape[0]
-actor, critic = get_model(obs_dim, act_dim, actor_output_activation='tanh')
+    for i in range(1, max_steps + 1):
+        state = tf.expand_dims(state, 0)
+        action_na = actor(state).mean()
 
+        state, reward, done = env_step(tf.squeeze(action_na, axis=[0]))
+        state.set_shape(initial_state_shape)
+        # print(done)
+
+        # reward_sum += reward.astype(np.float32).item()
+
+        if tf.cast(done, tf.bool):
+            break
+
+    return reward_sum
+
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('actor_dir', help='path to actor tf saved model', type=Path)
+    args = parser.parse_args()
+
+    actor_dir = args.actor_dir
+
+    env = get_env('WindTurbine-v2')
+    initial_state = tf.constant(env.reset(), dtype=tf.float32)
+
+    env_step = get_env_step(env)
+    custom_objects={'GaussianSample': GaussianSample}
+    with tf.keras.utils.custom_object_scope(custom_objects):
+        actor = tf.keras.models.load_model(actor_dir)
+        reward_sum = run_episode(env, env_step, initial_state, actor, 5 * 60 * 20)
