@@ -8,13 +8,13 @@ from pathlib import Path
 import os
 
 @tf.function
-def run_episode(env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Model, max_steps: tf.constant) -> float:
+def run_episode(env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Model, max_steps: int) -> float:
     initial_state_shape = initial_state.shape
     state = initial_state
 
     reward_sum = 0.0
 
-    for i in range(1, max_steps + 1):
+    for i in tf.range(1, max_steps + 1):
         state = tf.expand_dims(state, 0)
         action_na = actor(state).mean()
 
@@ -45,4 +45,4 @@ if __name__ == '__main__':
     custom_objects={'GaussianSample': GaussianSample}
     with tf.keras.utils.custom_object_scope(custom_objects):
         actor = tf.keras.models.load_model(actor_dir)
-        reward_sum = run_episode(env_step, initial_state, actor, tf.constant(5 * 60 * 20, dtype=tf.int32))
+        reward_sum = run_episode(env_step, initial_state, actor, 5 * 60 * 20)
