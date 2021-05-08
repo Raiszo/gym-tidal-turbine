@@ -8,7 +8,7 @@ from pathlib import Path
 import os
 
 @tf.function
-def run_episode(env: gym.Env, env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Model, max_steps: int) -> float:
+def run_episode(env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Model, max_steps: tf.constant) -> float:
     initial_state_shape = initial_state.shape
     state = initial_state
 
@@ -45,4 +45,4 @@ if __name__ == '__main__':
     custom_objects={'GaussianSample': GaussianSample}
     with tf.keras.utils.custom_object_scope(custom_objects):
         actor = tf.keras.models.load_model(actor_dir)
-        reward_sum = run_episode(env, env_step, initial_state, actor, 5 * 60 * 20)
+        reward_sum = run_episode(env_step, initial_state, actor, tf.constant(5 * 60 * 20, dtype=tf.int32))
