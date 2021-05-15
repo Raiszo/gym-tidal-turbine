@@ -1,11 +1,13 @@
 from argparse import ArgumentParser
+from pathlib import Path
+import math
 import gym
 import gym_tidal_turbine
 import numpy as np
 import tensorflow as tf
 from rl_agents.ppo import GaussianSample, get_env, get_env_step, TFStep
-from pathlib import Path
-import os
+
+from examples.plot_fns import show_plots
 
 @tf.function
 def run_episode(env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Model, max_steps: int) -> float:
@@ -45,7 +47,6 @@ def run_episode(env_step: TFStep, initial_state: tf.Tensor, actor: tf.keras.Mode
     return states, actions, rewards
 
 
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('actor_dir', help='path to actor tf saved model', type=Path)
@@ -54,10 +55,15 @@ if __name__ == '__main__':
     actor_dir = args.actor_dir
 
     env = get_env('WindTurbine-v2')
+
     initial_state = tf.constant(env.reset(), dtype=tf.float32)
 
     env_step = get_env_step(env)
     custom_objects={'GaussianSample': GaussianSample}
+    t_max = 5 * 60
+    T = 1/20
     with tf.keras.utils.custom_object_scope(custom_objects):
         actor = tf.keras.models.load_model(actor_dir)
-        states, actions, rewards = run_episode(env_step, initial_state, actor, 5 * 60 * 20)
+        states, actions, rewards = run_episode(env_step, initial_state, actor, int(t_max / T))
+
+        show_plots(states, actions, rewards, T, t_max)
