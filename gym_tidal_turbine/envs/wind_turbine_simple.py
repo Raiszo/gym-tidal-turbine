@@ -1,18 +1,6 @@
 import gym
 from gym import spaces
-
 import numpy as np
-from os import path, makedirs
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-from matplotlib.lines import Line2D
-
-from datetime import datetime
-
-
 
 class WindTurbine(gym.Env):
     def __init__(self, env_settings):
@@ -68,14 +56,14 @@ class WindTurbine(gym.Env):
         self.pitch = 0.0
 
         x_t = np.arange(0, self.t_max + self.dt, self.dt)
-        self.plot_vars = {
-            'x_t': x_t,
-            'P_aero': np.full(x_t.shape, np.nan),
-            'omega': np.full(x_t.shape, np.nan),
-            'T_aero': np.full(x_t.shape, np.nan),
-            'T_gen': np.full(x_t.shape, np.nan),
-            'rewards': np.full((x_t.shape[0], 3), np.nan),
-        }
+        # self.plot_vars = {
+        #     'x_t': x_t,
+        #     'P_aero': np.full(x_t.shape, np.nan),
+        #     'omega': np.full(x_t.shape, np.nan),
+        #     'T_aero': np.full(x_t.shape, np.nan),
+        #     'T_gen': np.full(x_t.shape, np.nan),
+        #     'rewards': np.full((x_t.shape[0], 3), np.nan),
+        # }
 
         obs = np.array([
             self.Uinf,
@@ -127,12 +115,12 @@ class WindTurbine(gym.Env):
             0.05                             # alive bonus
         ])
 
-        self.plot_vars['x_t'][self.i] = self.t
-        self.plot_vars['P_aero'][self.i] = observation[1]
-        self.plot_vars['omega'][self.i] = observation[2]
-        self.plot_vars['T_aero'][self.i ] = observation[3]
-        self.plot_vars['T_gen'][self.i] = self.t_gen / 1e3
-        self.plot_vars['rewards'][self.i, :] = rewards
+        # self.plot_vars['x_t'][self.i] = self.t
+        # self.plot_vars['P_aero'][self.i] = observation[1]
+        # self.plot_vars['omega'][self.i] = observation[2]
+        # self.plot_vars['T_aero'][self.i ] = observation[3]
+        # self.plot_vars['T_gen'][self.i] = self.t_gen / 1e3
+        # self.plot_vars['rewards'][self.i, :] = rewards
 
         diff_omega = self._diff_omega(t_aero, self.t_gen, self.omega, self.drivetrain_param)
         # print(diff_omega)
@@ -173,11 +161,11 @@ class WindTurbine(gym.Env):
         # print(t_gen, t_aero, N_gear * t_gen, (t_aero - N_gear * t_gen) / I_total)
         return (t_aero - N_gear * t_gen) / I_total
 
-    def render(self, mode='human', close=False):
-        self.save_plots(True)
+    # def render(self, mode='human', close=False):
+    #     self.save_plots(True)
 
-    def _get_timestamp(self):
-        return datetime.now().strftime('%Y%m%d%H%M%S')
+    # def _get_timestamp(self):
+    #     return datetime.now().strftime('%Y%m%d%H%M%S')
 
     def _initialize_rotor(self, rho, R):
         relu = lambda x: x * (x > 0)
@@ -198,108 +186,108 @@ class WindTurbine(gym.Env):
         return rotor
 
 
-    def plot_power(self, ax, x, y):
-        ax.set_ylabel('Power [kW]')
-        line_P = Line2D(x, y, color='blue')
-        ax.add_line(line_P)
-        ax.set_xlim(0, self.t_max)
-        ax.set_ylim(0, 2100)
-        ax.grid(linestyle='--', linewidth=0.5)
+    # def plot_power(self, ax, x, y):
+    #     ax.set_ylabel('Power [kW]')
+    #     line_P = Line2D(x, y, color='blue')
+    #     ax.add_line(line_P)
+    #     ax.set_xlim(0, self.t_max)
+    #     ax.set_ylim(0, 2100)
+    #     ax.grid(linestyle='--', linewidth=0.5)
 
-    def plot_omega(self, ax, x, y):
-        ax.set_ylabel('Rotor speed [rpm]')
-        line_omega = Line2D(x, y, color='blue')
-        ax.add_line(line_omega)
-        ax.set_xlim(0, self.t_max)
-        ax.set_ylim(0, 50)
-        ax.grid(linestyle='--', linewidth=0.5)
+    # def plot_omega(self, ax, x, y):
+    #     ax.set_ylabel('Rotor speed [rpm]')
+    #     line_omega = Line2D(x, y, color='blue')
+    #     ax.add_line(line_omega)
+    #     ax.set_xlim(0, self.t_max)
+    #     ax.set_ylim(0, 50)
+    #     ax.grid(linestyle='--', linewidth=0.5)
 
-    def plot_torq(self, ax, x, y):
-        """
-        x: x_t
-        y: [ t_gen, t_aero ]
-        """
+    # def plot_torq(self, ax, x, y):
+    #     """
+    #     x: x_t
+    #     y: [ t_gen, t_aero ]
+    #     """
 
-        ax.set_ylabel('Torque [kNm]')
-        line_gen_torq = Line2D(x, y[0], color='blue')
-        line_aero_torq = Line2D(x, y[1], color='red')
-        ax.add_line(line_gen_torq)
-        ax.add_line(line_aero_torq)
-        ax.set_xlim(0, self.t_max)
-        # ax.set_ylim(0.606, 47.403)
-        ax.set_ylim(-1.0, 500.0)
-        ax.grid(linestyle='--', linewidth=0.5)
-        ax.legend((line_gen_torq, line_aero_torq),
-                  ('Gen. Torq', 'Aero. Torq'),
-                  loc='upper right', shadow=True)
+    #     ax.set_ylabel('Torque [kNm]')
+    #     line_gen_torq = Line2D(x, y[0], color='blue')
+    #     line_aero_torq = Line2D(x, y[1], color='red')
+    #     ax.add_line(line_gen_torq)
+    #     ax.add_line(line_aero_torq)
+    #     ax.set_xlim(0, self.t_max)
+    #     # ax.set_ylim(0.606, 47.403)
+    #     ax.set_ylim(-1.0, 500.0)
+    #     ax.grid(linestyle='--', linewidth=0.5)
+    #     ax.legend((line_gen_torq, line_aero_torq),
+    #               ('Gen. Torq', 'Aero. Torq'),
+    #               loc='upper right', shadow=True)
 
-    def plot_reward(self, ax, x, y):
-        ax.set_ylabel('Reward [units]')
-        # print(x_t.shape, self.y_rewards[:, 0].shape)
-        line_reward_0 = Line2D(x, y[:, 0], color='green')
-        line_reward_1 = Line2D(x, y[:, 1], color='blue')
-        line_reward_2 = Line2D(x, y[:, 2], color='red')
-        ax.add_line(line_reward_0)
-        ax.add_line(line_reward_1)
-        ax.add_line(line_reward_2)
-        ax.set_xlim(0, self.t_max)
-        #ax.set_ylim(-200, 5600)
-        ax.set_ylim(-10, 10)
-        ax.grid(linestyle='--', linewidth=0.5)
-        ax.legend((line_reward_0, line_reward_1, line_reward_2),
-                  ('Power', 'Control', 'Alive'),
-                  loc='upper right', shadow=True)
+    # def plot_reward(self, ax, x, y):
+    #     ax.set_ylabel('Reward [units]')
+    #     # print(x_t.shape, self.y_rewards[:, 0].shape)
+    #     line_reward_0 = Line2D(x, y[:, 0], color='green')
+    #     line_reward_1 = Line2D(x, y[:, 1], color='blue')
+    #     line_reward_2 = Line2D(x, y[:, 2], color='red')
+    #     ax.add_line(line_reward_0)
+    #     ax.add_line(line_reward_1)
+    #     ax.add_line(line_reward_2)
+    #     ax.set_xlim(0, self.t_max)
+    #     #ax.set_ylim(-200, 5600)
+    #     ax.set_ylim(-10, 10)
+    #     ax.grid(linestyle='--', linewidth=0.5)
+    #     ax.legend((line_reward_0, line_reward_1, line_reward_2),
+    #               ('Power', 'Control', 'Alive'),
+    #               loc='upper right', shadow=True)
 
-    def save_plots(self, split=False):
-        time = self._get_timestamp()
-        file_dir = path.join('gwt_output',
-                             'render_{}'.format(time))
+    # def save_plots(self, split=False):
+    #     time = self._get_timestamp()
+    #     file_dir = path.join('gwt_output',
+    #                          'render_{}'.format(time))
 
-        # Create render output directory
-        try:
-            makedirs(file_dir)
-        except OSError:
-            if not path.isdir(file_dir):
-                raise
+    #     # Create render output directory
+    #     try:
+    #         makedirs(file_dir)
+    #     except OSError:
+    #         if not path.isdir(file_dir):
+    #             raise
 
-        # Handy variables
-        x_t = self.plot_vars['x_t']
-        pvars = self.plot_vars
+    #     # Handy variables
+    #     x_t = self.plot_vars['x_t']
+    #     pvars = self.plot_vars
 
-        plot_functions = [
-            [self.plot_power, x_t, pvars['P_aero'], 'power'],
-            [self.plot_omega, x_t, pvars['omega'], 'omega'],
-            [self.plot_torq, x_t, [pvars['T_gen'] * self.drivetrain_param["N_gear"], pvars['T_aero']], 'torque'],
-            [self.plot_reward, x_t, pvars['rewards'], 'rewards'],
-        ]
+    #     plot_functions = [
+    #         [self.plot_power, x_t, pvars['P_aero'], 'power'],
+    #         [self.plot_omega, x_t, pvars['omega'], 'omega'],
+    #         [self.plot_torq, x_t, [pvars['T_gen'] * self.drivetrain_param["N_gear"], pvars['T_aero']], 'torque'],
+    #         [self.plot_reward, x_t, pvars['rewards'], 'rewards'],
+    #     ]
 
-        if split:
-            for plot_fn, x, y, name in plot_functions:
-                print('name', name)
-                file_name = '{}.png'.format(name)
-                file_path = path.join(file_dir, file_name)
+    #     if split:
+    #         for plot_fn, x, y, name in plot_functions:
+    #             print('name', name)
+    #             file_name = '{}.png'.format(name)
+    #             file_path = path.join(file_dir, file_name)
 
-                fg, ax = plt.subplots(figsize=[6.4, 4.8]*2)
-                fg.suptitle(name)
-                plot_fn(ax, x, y)
-                ax.set_xlabel('Time [s]')
-                fg.savefig(file_path, dpi=72)
-        else:
-            file_name = 'all_plots.png'
-            file_path = path.join(file_dir, file_name)
-            fig, axs = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
-                                            gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
+    #             fg, ax = plt.subplots(figsize=[6.4, 4.8]*2)
+    #             fg.suptitle(name)
+    #             plot_fn(ax, x, y)
+    #             ax.set_xlabel('Time [s]')
+    #             fg.savefig(file_path, dpi=72)
+    #     else:
+    #         file_name = 'all_plots.png'
+    #         file_path = path.join(file_dir, file_name)
+    #         fig, axs = plt.subplots(4, figsize=(8, 12), sharex='all', tight_layout=True,
+    #                                         gridspec_kw={'height_ratios': [ 1, 1, 2, 2]})
 
-            # fig.suptitle('gym-wind-turbine')
+    #         # fig.suptitle('gym-wind-turbine')
 
-            z = zip(plot_functions, axs)
-            for plot, ax in z:
-                plot_fn, x, y, _ = plot
-                plot_fn(ax, x, y)
+    #         z = zip(plot_functions, axs)
+    #         for plot, ax in z:
+    #             plot_fn, x, y, _ = plot
+    #             plot_fn(ax, x, y)
 
-            axs[-1].set_xlabel('Time [s]')
+    #         axs[-1].set_xlabel('Time [s]')
             
-            fig.savefig(file_path, dpi=72)
+    #         fig.savefig(file_path, dpi=72)
 
 
             
