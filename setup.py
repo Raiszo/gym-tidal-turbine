@@ -8,6 +8,7 @@ setup(
         'numpy',
         # 'rl_agents @ git+https://github.com/Raiszo/rl-agents.git@master#egg=rl_agents',
         'matplotlib',
+        'tensorflow==2.4.1',
         # 'CCBlade==1.1.1',
     ]
 )
