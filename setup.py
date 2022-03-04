@@ -5,7 +5,7 @@ setup(
     version='0.0.1',
     install_requires=[
         'gym',
-        'numpy==1.19.2',
+        'numpy==1.21.0',
         # 'rl_agents @ git+https://github.com/Raiszo/rl-agents.git@master#egg=rl_agents',
         'matplotlib',
         'tensorflow==2.5.3',
